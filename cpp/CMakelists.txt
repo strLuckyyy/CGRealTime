@@ -45,7 +45,14 @@ include_directories(${stb_image_SOURCE_DIR})
 
 # Lista de exemplos/exercícios podem ser colocados aqui também
 set(EXERCISES
-    Aula2
+    Aula2-Exemplo1
+    Aula2-Exercicio1
+
+    Aula3-Exemplo1
+    Aula3-Exemplo2
+    Aula3-Exemplo3
+    Aula3-Exemplo4
+    Aula3-Exemplo5
 )
 
 add_compile_options(-Wno-pragmas)

@@ -19,39 +19,6 @@
 
 using namespace std;
 
-// Cube Database
-struct Cube
-{
-    glm::vec3 position;
-    glm::vec4 color;
-    glm::vec3 rotation;
-    bool rotAnimacao = false;
-    bool transAnimacao = false;
-    float tz = 0.f;
-    int sentido = 1;
-};
-
-Cube cubes[] = {
-    Cube{
-        .position = glm::vec3(0.f, 0.f, 0.f),
-        .color = glm::vec4(1.f, 0.f, 0.f, 1.f),
-        .rotation = glm::vec3(0.f, 0.f, 0.f)
-    },
-    Cube{
-        .position = glm::vec3(1.f, 1.f, 1.f),
-        .color = glm::vec4(0.f, 1.f, 1.f, 1.f),
-        .rotation = glm::vec3(0.f, 0.f, 0.f),
-        .rotAnimacao = true
-    },
-    Cube{
-        .position = glm::vec3(2.f, -1.f, 0.f),
-        .color = glm::vec4(0.f, 0.f, 1.f, 1.f),
-        .rotation = glm::vec3(0.f, 0.f, 0.f),
-        .transAnimacao = true
-    }
-};
-// End of Cube Database
-
 GLFWwindow* Window = nullptr;
 GLuint Shader_programm = 0;
 GLuint Vao_cubo = 0;
@@ -60,10 +27,6 @@ int WIDTH = 800;
 int HEIGHT = 600;
 
 float Tempo_entre_frames = 0.0f;
-
-float Size = 1.f;
-bool CanRotate = true;
-int rotation = 0;
 
 // -----------------------------
 // Parâmetros da câmera virtual
@@ -312,23 +275,6 @@ void trataTeclado()
         Cam_pos += direita * velocidade;
     if (glfwGetKey(Window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(Window, true);
-    
-    // Size
-    if (glfwGetKey(Window, GLFW_KEY_UP) == GLFW_PRESS)
-        Size += 1.f * Tempo_entre_frames;
-    if (glfwGetKey(Window, GLFW_KEY_DOWN) == GLFW_PRESS)
-        Size -= 1.f * Tempo_entre_frames;
-
-    if (Size < 0.1f) Size = 0.1f;
-    if (Size > 3.f) Size = 3.f;
-    // End Size
-
-    // Rotation
-    if (glfwGetKey(Window, GLFW_KEY_1) == GLFW_PRESS)
-        CanRotate = false;
-    if (glfwGetKey(Window, GLFW_KEY_2) == GLFW_PRESS)
-        CanRotate = true;
-    // End Rotation
 }
 
 // -----------------------------
@@ -347,9 +293,6 @@ void inicializaRenderizacao()
 
     glEnable(GL_DEPTH_TEST);
 
-    int trans = 5;
-    int distancia = 3;
-
     while(!glfwWindowShouldClose(Window))
     {
         float tempo_atual = glfwGetTime();
@@ -364,34 +307,9 @@ void inicializaRenderizacao()
 
         glBindVertexArray(Vao_cubo);
 
-        for(Cube& cube : cubes)
-        {
-            // CUBO RODANDO
-            if(cube.rotAnimacao && CanRotate)
-            {
-                cube.rotation[0] += 80.f * Tempo_entre_frames;
-                if(cube.rotation[0] > 360.f) cube.rotation[0] = 0.f;
-            }
-
-            // CUBO TRANSITANDO
-            if(cube.transAnimacao)
-            {
-                if(cube.tz > distancia) cube.sentido = -1;
-                if(cube.tz < -distancia) cube.sentido = 1;
-
-                cube.tz += cube.sentido * trans * Tempo_entre_frames;
-            }
-        
-            defineCor(cube.color[0], cube.color[1], cube.color[2], cube.color[3]);
-
-            transformacaoGenerica(
-                cube.position[0], cube.position[1], cube.position[2] + cube.tz,
-                Size, Size, Size,
-                cube.rotation[0], cube.rotation[1], cube.rotation[2]
-            );
-
-            glDrawArrays(GL_TRIANGLES,0,36);
-        }
+        defineCor(1.0f,0.6f,0.2f,1.0f);
+        transformacaoGenerica(0,0,0,1,1,1,0,0,0);
+        glDrawArrays(GL_TRIANGLES,0,36);
 
         glfwSwapBuffers(Window);
         glfwPollEvents();

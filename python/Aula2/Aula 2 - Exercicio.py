@@ -1,11 +1,61 @@
-# Câmera
+# -----------------------------
+#
+#   Exercicio:
+#       1. A partir do código base, desenhe dois cubos na cena usando o mesmo VAO, cada um em uma posição diferente do espaço.
+#       2. Atribua cores diferentes para cada cubo usando o uniform corobjeto.
+#       3. Faça com que um dos cubos gire continuamente em torno de um eixo à sua escolha, usando o tempo entre frames (Tempo_entre_frames) para controlar a rotação.
+#       4. Faça com que o outro cubo permaneça parado, servindo como referência visual para a rotação do primeiro.
+#       5. Implemente um terceiro cubo, também reutilizando o mesmo VAO, posicionado em outro ponto da cena.
+#       6. Faça com que esse terceiro cubo se mova continuamente para frente e para trás ao longo de um eixo (ex.: eixo Z), usando o tempo entre frames para controlar a velocidade.
+#       7. Associe uma tecla do teclado para aumentar e diminuir a escala de todos os cubos simultaneamente.
+#       8. Associe outra tecla para ativar ou desativar a rotação do cubo que gira.
+#       9. Modifique o código para que todos os cubos sejam desenhados dentro de um único loop, usando uma estrutura de dados simples (por exemplo, uma lista de posições).
+#       10. Organize o código de forma que fique claro:
+#           - onde o modelo geométrico é definido
+#           - onde as instâncias (cubos) são posicionadas
+#           - onde ocorre a renderização de cada instância
+#
+# -----------------------------
 
 # Neste exemplo, especificamos uma câmera virtual através da aplicação de transformações de projeção
 import glfw
 from OpenGL.GL import *
+from dataclasses import dataclass
 import OpenGL.GL.shaders
 import numpy as np
-    
+
+# Cube Database #
+@dataclass
+class Cube:
+    pos: np.ndarray
+    color: np.ndarray
+    rot: np.ndarray
+    rotAnimacao: bool = False
+    transAnimacao: bool = False
+    tz: float = 0.0
+    direction: int = 1
+
+cubes = [
+    Cube(
+        pos=np.array([0.0, 0.0, 0.0]),
+        color=np.array([1.0, 0.0, 0.0, 1.0]),
+        rot=np.array([0.0, 0.0, 0.0])
+    ),
+    Cube(
+        pos=np.array([1.0, 1.0, 1.0]),
+        color=np.array([1.0, 1.0, 0.0, 1.0]),
+        rot=np.array([0.0, 0.0, 0.0]),
+        rotAnimacao=True
+    ),
+    Cube(
+        pos=np.array([2.0, -1.0, 0.0]),
+        color=np.array([1.0, 0.0, 1.0, 1.0]),
+        rot=np.array([0.0, 0.0, 0.0]),
+        transAnimacao=True
+    )
+]
+# End Cube Database #
+
 Window = None
 Shader_programm = None
 Vao_cubo = None
@@ -22,6 +72,10 @@ Cam_yaw = 0.0 #ângulo de rotação da câmera em y
 Cam_pitch = 0.0  # controle vertical
 lastX, lastY = WIDTH / 2, HEIGHT / 2
 primeiro_mouse = True
+
+canRot = True
+rot = 0
+S = 1
 
 def redimensionaCallback(window, w, h):
     global WIDTH, HEIGHT
@@ -124,6 +178,7 @@ def inicializaCubo():
 		-0.5, 0.5, -0.5,
 		-0.5, 0.5, 0.5,
 	]
+
     points = np.array(points, dtype=np.float32)
     pvbo = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, pvbo)
@@ -333,7 +388,7 @@ def trataTeclado():
     A direção do movimento segue o vetor 'front' (para onde o jogador está olhando),
     incluindo a inclinação vertical (pitch), assim o movimento é fiel ao olhar.
     """
-    global Cam_pos, Cam_yaw, Cam_pitch, Tempo_entre_frames
+    global Cam_pos, Cam_yaw, Cam_pitch, Tempo_entre_frames, canRot, S
 
     velocidade = Cam_speed * Tempo_entre_frames
 
@@ -362,6 +417,21 @@ def trataTeclado():
     if glfw.get_key(Window, glfw.KEY_ESCAPE) == glfw.PRESS:
         glfw.set_window_should_close(Window, True)
 
+    # Size #
+    if glfw.get_key(Window, glfw.KEY_UP) == glfw.PRESS: 
+        S += .05
+    if glfw.get_key(Window, glfw.KEY_DOWN) == glfw.PRESS: 
+        S -= .05
+
+    if S < 0.1: S = 0.1
+    if S > 3: S = 3
+    # End Size #
+
+    # Can Rotate #
+    if glfw.get_key(Window, glfw.KEY_1) == glfw.PRESS: canRot = False
+    if glfw.get_key(Window, glfw.KEY_2) == glfw.PRESS: canRot = True
+    # End Can Rotate #
+ 
 def defineCor(r, g, b, a):
     #array de cores que vamos mandar pro shader
     cores = np.array([r, g, b, a]) 
@@ -371,7 +441,7 @@ def defineCor(r, g, b, a):
     glUniform4fv(coresLoc, 1, cores)
     
 def inicializaRenderizacao():
-    global Window, Shader_programm, Vao_cubo, WIDTH, HEIGHT, Tempo_entre_frames
+    global Window, Shader_programm, Vao_cubo, WIDTH, HEIGHT, Tempo_entre_frames, S, rot, canRot
 
     tempo_anterior = glfw.get_time()
 
@@ -381,8 +451,9 @@ def inicializaRenderizacao():
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
+    trans = 5
+    distancia = 3
 
-    
     while not glfw.window_should_close(Window):
         #calcula quantos segundos se passaram entre um frame e outro
         tempo_frame_atual = glfw.get_time()
@@ -399,27 +470,36 @@ def inicializaRenderizacao():
 
         inicializaCamera()
 
-        glBindVertexArray(Vao_cubo) #modelo do cubo
-        
-        r = 1
-        g = 0
-        b = 0
-        a = 1
-        Tx = 0
-        Ty = 0
-        Tz = 0
-        S = 1
+        glBindVertexArray(Vao_cubo) # modelo do cubo; iniciando antes do loop para todos terem o mesmo VAO   
 
-        defineCor(r,g,b,a)
-        transformacaoGenerica(Tx, Ty, Tz, S, S, S, 0, 0, 0)
-        glDrawArrays(GL_TRIANGLES, 0, 36)
+        for i in cubes:
+            # CUBO RODANDO (CUBO 2)
+            if i.rotAnimacao and canRot:
+                i.rot[0] += 80 * Tempo_entre_frames
+                if i.rot[0] >= 360: i.rot[0] = 0
+
+            # CUBO MOVENDO (CUBO 3)
+            if i.transAnimacao:
+                if i.tz >= distancia: i.direction = -1
+                if i.tz <= -distancia: i.direction = 1
+
+                i.tz += i.direction * trans * Tempo_entre_frames
+
+            defineCor(i.color[0], i.color[1], i.color[2], i.color[3])
+
+            transformacaoGenerica(
+                i.pos[0], i.pos[1], i.pos[2] + i.tz, 
+                S, S, S, 
+                i.rot[0], i.rot[1], i.rot[2])
+            
+            glDrawArrays(GL_TRIANGLES, 0, 36)
+
 
         glfw.poll_events()
-
         glfw.swap_buffers(Window)
         
         trataTeclado()
-    
+
     glfw.terminate()
 
 # Função principal
@@ -428,7 +508,6 @@ def main():
     inicializaCubo()
     inicializaShaders()
     inicializaRenderizacao()
-
 
 if __name__ == "__main__":
     main()

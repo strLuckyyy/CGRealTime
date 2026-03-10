@@ -17,6 +17,7 @@
 
 # Ignorar dependências baixadas automaticamente pelo CMake (GLFW FetchContent)
 _build/
+build/
 _deps/
 glfw-src/
 glfw-build/
@@ -24,9 +25,8 @@ glfw-build/
 # Ignora diretórios com dependências externas baixadas automaticamente pelo FetchContent (stb_image CMake)
 external/
 
-
 # Ignorar configurações específicas do VSCode
-.vscode/
+*.vscode/
 CMakeUserPresets.json
 
 # Ignorar logs e arquivos de sistema
@@ -35,3 +35,4 @@ CMakeUserPresets.json
 Thumbs.db
 
 
+*.zip
