@@ -37,13 +37,9 @@ primeiro_mouse = True
 
 Tempo_entre_frames = 0.0  # variável utilizada para movimentar a câmera
 
-# -----------------------------
-# Estado dos objetos
-# -----------------------------
-
 # VAO Toroide
 Vao_Teroide = None
-resolucao = 100
+resolucao = 90
 
 # -----------------------------
 # Callbacks de janela e entrada
@@ -97,18 +93,22 @@ def inicializaOpenGL():
 # Geometria do Toroide
 # -----------------------------
 
-def gerarGeometria(resolucao: int = 100) -> np.ndarray:
-    vbo = []
+def gerarGeometria(resolucao) -> np.ndarray:
+    vbo = np.array([], dtype=np.float32)
+    R: float = 3
     r: float = .5
 
     for i in range(resolucao):
-        angulo: float = i * (2 * math.pi / resolucao)
+        phi = i * (2 * math.pi / resolucao)
+        
+        for j in range(resolucao):
+            theta = j * (2 * math.pi / resolucao)  
 
-        x = 0
-        y = r * math.cos(angulo)
-        z = r * math.sin(angulo)
+            x = (R + r * math.cos(theta)) * math.cos(phi)
+            y = r * math.sin(theta)
+            z = (R + r * math.cos(theta)) * math.sin(phi)
 
-        vbo.extend([x, y, z])
+            vbo = np.append(vbo, [x, y, z])
 
     return np.array(vbo, np.float32)
 
@@ -120,16 +120,21 @@ def inicializaGeometria():
     global Vao_Teroide, resolucao
 
     # Teroide
+    vbo_teroide = gerarGeometria(resolucao)
+    
     Vao_Teroide = glGenVertexArrays(1)
     glBindVertexArray(Vao_Teroide)
 
-    vbo_teroide = gerarGeometria(resolucao)
     vbo = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, vbo)
     glBufferData(GL_ARRAY_BUFFER, vbo_teroide.nbytes, vbo_teroide, GL_STATIC_DRAW)
 
+    ebo = glGenBuffers(1)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, vbo_teroide.nbytes, vbo_teroide, GL_STATIC_DRAW)
+
     glEnableVertexAttribArray(0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, ctypes.c_void_p(0))
 
 # -----------------------------
 # Shaders
@@ -261,7 +266,7 @@ def especificaMatrizProjecao():
         [a,   0.0, 0.0,  0.0],
         [0.0, b,   0.0,  0.0],
         [0.0, 0.0, c,    d  ],
-        [0.0, 0.0, -1.0, 1.0]
+        [0.0, 0.0, -1.0, 0.0]
     ], dtype=np.float32)
 
     transformLoc = glGetUniformLocation(Shader_programm, "proj")
@@ -348,10 +353,14 @@ def inicializaRenderizacao():
         inicializaCamera()
 
         # Draw Objects # 
-        defineCor(1, 0, 0, 1.0)  # cor do teroide
+        defineCor(1, 1, 0, 1.0)  # cor do teroide
+        transformLoc = glGetUniformLocation(Shader_programm, "transform")
+        glUniformMatrix4fv(transformLoc, 1, GL_TRUE, translacao(0, 0, 0))
+
         glBindVertexArray(Vao_Teroide)
-        glPointSize(5)  # aumenta o tamanho dos pontos para melhor visualização
-        glDrawArrays(GL_POINTS, 0, resolucao)
+        
+        glDrawArrays(GL_POINTS, 0, resolucao * resolucao)
+        glDrawElements(GL_TRIANGLES, resolucao * resolucao * 6, GL_UNSIGNED_INT, None)
 
         glfw.poll_events()
         glfw.swap_buffers(Window)
