@@ -37,9 +37,16 @@ primeiro_mouse = True
 
 Tempo_entre_frames = 0.0  # variável utilizada para movimentar a câmera
 
+last_tempo_frame = 0.0  # para controle de cooldown de teclas
+
 # VAO Toroide
 Vao_Teroide = None
-resolucao = 90
+resolucao = 35
+
+# Exibição
+tam_pontos = 5
+exibir_pontos = False
+exibir_wireframe = False #troca entre os triangulos preenchidos e a malha de linhas
 
 # -----------------------------
 # Callbacks de janela e entrada
@@ -94,23 +101,49 @@ def inicializaOpenGL():
 # -----------------------------
 
 def gerarGeometria(resolucao) -> np.ndarray:
-    vbo = np.array([], dtype=np.float32)
+    vbo = []
     R: float = 3
     r: float = .5
 
     for i in range(resolucao):
         phi = i * (2 * math.pi / resolucao)
-        
         for j in range(resolucao):
             theta = j * (2 * math.pi / resolucao)  
 
+            # Posição de cada vértice
             x = (R + r * math.cos(theta)) * math.cos(phi)
             y = r * math.sin(theta)
             z = (R + r * math.cos(theta)) * math.sin(phi)
 
-            vbo = np.append(vbo, [x, y, z])
+            # Cálculo da normal
+            c = (R * math.cos(phi), 0, R * math.sin(phi))
+            n = np.array([x, y, z]) - np.array(c)
+            n /= np.linalg.norm(n)
+            
+            vbo.extend([x, y, z, n[0], n[1], n[2]])
 
     return np.array(vbo, np.float32)
+
+def gerarMalha(resolucao):
+    ebo = []
+    
+    for i in range(resolucao):
+        for j in range(resolucao):
+            # Índices dos 4 cantos de um "quadrado" na malha
+            # Usamos o % (módulo) para que o último ponto se conecte ao primeiro (fechar o anel)
+            
+            p1 = i * resolucao + j
+            p2 = ((i + 1) % resolucao) * resolucao + j
+            p3 = i * resolucao + ((j + 1) % resolucao)
+            p4 = ((i + 1) % resolucao) * resolucao + ((j + 1) % resolucao)
+
+            # Cada quadrado da malha é formado por dois triângulos:
+            # Triângulo 1 (p1, p2, p3)
+            ebo.extend([p1, p2, p3])
+            # Triângulo 2 (p2, p4, p3)
+            ebo.extend([p2, p4, p3])
+    
+    return np.array(ebo, dtype=np.uint32)
 
 # -----------------------------
 # Inicialização das geometrias
@@ -119,9 +152,12 @@ def gerarGeometria(resolucao) -> np.ndarray:
 def inicializaGeometria():
     global Vao_Teroide, resolucao
 
+    stride = 6 * 4
+    
     # Teroide
     vbo_teroide = gerarGeometria(resolucao)
-    
+    vbo_malha   = gerarMalha(resolucao)
+
     Vao_Teroide = glGenVertexArrays(1)
     glBindVertexArray(Vao_Teroide)
 
@@ -131,10 +167,12 @@ def inicializaGeometria():
 
     ebo = glGenBuffers(1)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, vbo_teroide.nbytes, vbo_teroide, GL_STATIC_DRAW)
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, vbo_malha.nbytes, vbo_malha, GL_STATIC_DRAW)
 
     glEnableVertexAttribArray(0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, ctypes.c_void_p(0))
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
+    glEnableVertexAttribArray(1)
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(12))
 
 # -----------------------------
 # Shaders
@@ -150,14 +188,24 @@ def inicializaShaders():
 
     # Especificação do Vertex Shader:
     vertex_shader = """
-        #version 330 core
+        #version 400
         layout(location = 0) in vec3 vertex_posicao;
-        // transform — matriz de modelo (translação do cubo)
-        // view      — matriz da câmera recebida do Python
-        // proj      — matriz de projeção recebida do Python
+        layout(location = 1) in vec3 vertex_normal;
+
+        //view - matriz da câmera recebida do PYTHON
+        //proj - matriz de projeção recebida do PYTHON
+        //transform - matriz de transformação geométrica do objeto recebida do PYTHON
+        
         uniform mat4 transform, view, proj;
-        void main() {
-            gl_Position = proj * view * transform * vec4(vertex_posicao, 1.0);
+        out vec3 normal_mundo;
+
+        void main () {
+            gl_Position  = proj * view * transform * vec4(vertex_posicao, 1.0);
+            
+            // Transforma a normal para o espaço do mundo usando apenas a parte
+            // rotação/escala da matriz de transformação (ignora translação)
+            
+            normal_mundo = mat3(transform) * vertex_normal;
         }
     """
     vs = OpenGL.GL.shaders.compileShader(vertex_shader, GL_VERTEX_SHADER)
@@ -166,11 +214,23 @@ def inicializaShaders():
 
     # Especificação do Fragment Shader:
     fragment_shader = """
-        #version 330 core
+        #version 400
+        in  vec3 normal_mundo;
         out vec4 frag_colour;
         uniform vec4 corobjeto;
-        void main() {
-            frag_colour = corobjeto;
+        uniform vec3 luz_dir;  // direção da luz orbital — atualizada pelo Python a cada frame
+
+        void main () {
+            // Direção da luz direcional — recebida do Python como uniform,
+            // atualizada a cada frame para orbitar a cena automaticamente.
+            // Isso NÃO é o conteúdo desta aula: é apenas um truque visual
+            // para tornar a diferença entre os tipos de normal visível.
+            
+            vec3  n           = normalize(normal_mundo);
+            float difuso      = max(dot(n, luz_dir), 0.0) * 0.8;
+            float ambiente    = 0.2;
+            float intensidade = difuso + ambiente;
+            frag_colour = vec4(corobjeto.rgb * intensidade, corobjeto.a);
         }
     """
     fs = OpenGL.GL.shaders.compileShader(fragment_shader, GL_FRAGMENT_SHADER)
@@ -296,9 +356,13 @@ def trataTeclado():
     A direção do movimento segue o vetor 'frente' (para onde o jogador está
     olhando), incluindo a inclinação vertical (pitch).
     """
-    global Cam_pos
+    global Cam_pos, resolucao, tam_pontos, exibir_pontos, exibir_wireframe, last_tempo_frame
 
     velocidade = Cam_speed * Tempo_entre_frames
+    tempo_atual = glfw.get_time()
+    cd_tecla_LOD = 0.2  # segundos entre mudanças de LOD
+    cd_tecla_pontos = .5  # segundos entre mudanças de tamanho de pontos
+    cd_tecla_wire = 0.5  # segundos entre mudanças de exibição de wireframe
 
     frente = np.array([
         np.cos(np.radians(Cam_yaw)) * np.cos(np.radians(Cam_pitch)),
@@ -325,20 +389,62 @@ def trataTeclado():
     if glfw.get_key(Window, glfw.KEY_ESCAPE) == glfw.PRESS:
         glfw.set_window_should_close(Window, True)
 
+    if tempo_atual - last_tempo_frame > cd_tecla_LOD:    
+        # LOD manual
+        if glfw.get_key(Window, glfw.KEY_KP_ADD) == glfw.PRESS:
+            resolucao += 1
+            inicializaGeometria()
+            last_tempo_frame = tempo_atual
+
+        if glfw.get_key(Window, glfw.KEY_KP_SUBTRACT) == glfw.PRESS and resolucao > 3:
+            resolucao -= 1
+            inicializaGeometria()
+            last_tempo_frame = tempo_atual
+
+    if tempo_atual - last_tempo_frame > cd_tecla_pontos:
+        # Mudar tipo de exibição do modelo
+        if glfw.get_key(Window, glfw.KEY_1) == glfw.PRESS:
+            exibir_pontos = not exibir_pontos
+            last_tempo_frame = tempo_atual
+    
+    if tempo_atual - last_tempo_frame > cd_tecla_wire:
+        if glfw.get_key(Window, glfw.KEY_2) == glfw.PRESS:
+            exibir_wireframe = not exibir_wireframe
+            last_tempo_frame = tempo_atual
+    
+    if tempo_atual - last_tempo_frame > cd_tecla_pontos:
+        if glfw.get_key(Window, glfw.KEY_P) == glfw.PRESS:
+            tam_pontos += 1
+            if tam_pontos > 10:
+                tam_pontos = 1
+            last_tempo_frame = tempo_atual
+
+    if tempo_atual - last_tempo_frame < cd_tecla_pontos:
+        if glfw.get_key(Window, glfw.KEY_O) == glfw.PRESS:
+            tam_pontos -= 1
+            if tam_pontos < 1:
+                tam_pontos = 10
+            last_tempo_frame = tempo_atual
+
 # -----------------------------
 # Loop de renderização
 # -----------------------------
 
 def inicializaRenderizacao():
-    global Tempo_entre_frames, Vao_Teroide, resolucao
+    global Tempo_entre_frames, Vao_Teroide, resolucao, tam_pontos, exibir_pontos, exibir_wireframe
 
     tempo_anterior = glfw.get_time()
 
     # Ativa o teste de profundidade para que faces mais próximas sobreponham as mais distantes
     glEnable(GL_DEPTH_TEST)
 
-    print("  W/A/S/D + mouse — câmera FPS")
+    print("\n\n  W/A/S/D + mouse — câmera FPS")
     print("  ESC             — fechar\n")
+    print("  Teclado numérico + / - — aumentar/diminuir resolução do toroide")
+    print("  1               — alternar exibição de pontos")
+    print("  2               — alternar exibição de wireframe")
+    print("  P               — aumentar tamanho dos pontos")
+    print("  O               — diminuir tamanho dos pontos")
 
     while not glfw.window_should_close(Window):
         # Calcula quantos segundos se passaram entre um frame e outro
@@ -352,14 +458,33 @@ def inicializaRenderizacao():
         glUseProgram(Shader_programm)
         inicializaCamera()
 
+        angulo_luz = tempo_frame_atual * 0.8  # 0.8 rad/s — rotação suave
+        luz_x = np.cos(angulo_luz)
+        luz_z = np.sin(angulo_luz)
+        luz_dir = np.array([luz_x, 0.6, luz_z], dtype=np.float32)
+        luz_dir /= np.linalg.norm(luz_dir)
+        luzLoc = glGetUniformLocation(Shader_programm, "luz_dir")
+        glUniform3fv(luzLoc, 1, luz_dir)
+
         # Draw Objects # 
-        defineCor(1, 1, 0, 1.0)  # cor do teroide
         transformLoc = glGetUniformLocation(Shader_programm, "transform")
         glUniformMatrix4fv(transformLoc, 1, GL_TRUE, translacao(0, 0, 0))
-
         glBindVertexArray(Vao_Teroide)
         
-        glDrawArrays(GL_POINTS, 0, resolucao * resolucao)
+        # Desenha os pontos do toroide
+        if exibir_pontos:
+            glPointSize(tam_pontos)
+            defineCor(0, 0, 1, 1.0)
+            glDrawArrays(GL_POINTS, 0, resolucao * resolucao)
+
+        # Desenha a malha do toroide
+        if exibir_wireframe:
+            defineCor(1, 1, 1, 1.0)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+        else:
+            defineCor(1, .5, 0, 1.0)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+        
         glDrawElements(GL_TRIANGLES, resolucao * resolucao * 6, GL_UNSIGNED_INT, None)
 
         glfw.poll_events()
