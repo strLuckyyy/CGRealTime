@@ -1,14 +1,17 @@
-/* Cubo com e sem Índice — exemplo para a disciplina de Computação Gráfica em Tempo Real
- * * Este exemplo demonstra que o mesmo objeto (um cubo) pode ser representado
- * de duas formas diferentes na GPU:
- *
- * 1) Sem índice — glDrawArrays:
- * - cada triângulo declara seus próprios três vértices
- * - cubo com 36 vértices no VBO (muita redundância)
- *
- * 2) Com índice — glDrawElements:
- * - cada posição única é armazenada apenas uma vez (8 vértices no total)
- * - um buffer de índices (EBO) define a conectividade
+/* 
+    Exercício: Construir um Anel 3D (Toroide)
+
+    Controles:
+        W/A/S/D                 — mover câmera (FPS)
+        Mouse                   — girar câmera
+        ESC                     — fechar
+
+        ↑, ↓                    — aumentar/diminuir resolução do toroide
+        ←, →                    — aumentar/diminuir tamanho dos pontos
+        1                       — alternar exibição de pontos
+        2                       — alternar exibição de wireframe
+    
+    by: Abrahão Francis Gonçalves
  */
 
 #include <glad/glad.h>

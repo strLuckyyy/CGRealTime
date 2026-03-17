@@ -3,9 +3,17 @@
 # Exercício: Construir um Anel 3D (Toroide)
 #
 # Controles:
-#   W/A/S/D   — mover câmera (FPS)
-#   Mouse     — girar câmera
-#   ESC       — fechar
+#   W/A/S/D                 — mover câmera (FPS)
+#   Mouse                   — girar câmera
+#   ESC                     — fechar
+# 
+#  Teclado numérico + / -   — aumentar/diminuir resolução do toroide
+#   1                       — alternar exibição de pontos
+#   2                       — alternar exibição de wireframe
+#   P                       — aumentar tamanho dos pontos
+#   O                       — diminuir tamanho dos pontos
+#
+#   by: Abrahão Francis Gonçalves
 #
 # -----------------------------
 
