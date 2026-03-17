@@ -458,6 +458,7 @@ def inicializaRenderizacao():
         glUseProgram(Shader_programm)
         inicializaCamera()
 
+        # Iluminação
         angulo_luz = tempo_frame_atual * 0.8  # 0.8 rad/s — rotação suave
         luz_x = np.cos(angulo_luz)
         luz_z = np.sin(angulo_luz)
