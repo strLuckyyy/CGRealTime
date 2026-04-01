@@ -72,7 +72,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 // Geometria do cubo
 // -----------------------------
 
-void inicializaGeometria() {
+void gerarGeometria() {
     // -------- Cubo sem índice (glDrawArrays) --------
     // 36 vértices (6 faces * 2 triângulos * 3 vértices)
     float vertices_sem[] = {
@@ -197,7 +197,7 @@ int main() {
     glfwSetCursorPosCallback(Window, mouse_callback);
 
     inicializaShaders();
-    inicializaGeometria();
+    gerarGeometria();
 
     glEnable(GL_DEPTH_TEST);
 

@@ -45,9 +45,10 @@ include_directories(${stb_image_SOURCE_DIR})
 
 # Lista de exemplos/exercícios podem ser colocados aqui também
 set(EXERCISES
+    Aula2-Atividade
     Aula2-Exemplo1
-    Aula2-Exercicio1
 
+    Aula3-Atividade
     Aula3-Exemplo1
     Aula3-Exemplo2
     Aula3-Exemplo3

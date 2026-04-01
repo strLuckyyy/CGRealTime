@@ -115,7 +115,7 @@ void calculaAABB(const vector<float>& vertices, glm::vec3& min_v, glm::vec3& max
     }
 }
 
-void inicializaGeometria() {
+void gerarGeometria() {
     vector<float> v_esfera;
     vector<unsigned int> i_esfera;
     geraEsferaUV(48, 48, 0.8f, v_esfera, i_esfera);
@@ -228,7 +228,7 @@ int main() {
     glfwSetCursorPosCallback(Window, mouse_callback);
 
     inicializaShaders();
-    inicializaGeometria();
+    gerarGeometria();
 
     glEnable(GL_DEPTH_TEST);
 
