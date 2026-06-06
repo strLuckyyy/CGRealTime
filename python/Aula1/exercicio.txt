@@ -1,0 +1,21 @@
+
+Aula 1 - Exercícios
+
+
+Vencimento: domingo, 22 mar. 2026, 00:00
+
+Pesquise rapidamente o que é LOD (Level of Detail). Em uma frase, explique para que ele é usado em jogos.
+
+Encontre um exemplo de normal map sendo usado em um objeto simples. O que essa técnica evita que o desenvolvedor precise fazer?
+
+Pesquise quais são os três tipos básicos de luz usados em computação gráfica. Cite um exemplo de uso real para cada um.
+
+Um material metálico e um material de plástico usam a mesma geometria. Pesquise o que normalmente muda entre eles no material para que pareçam diferentes.
+
+Pesquise rapidamente o que é back-face culling. Por que essa técnica quase nunca altera o resultado visual correto?
+
+Encontre uma explicação simples sobre shadow mapping. Qual é a ideia central da técnica?
+
+Em uma engine de jogos, o texto do HUD normalmente é renderizado como textura. Pesquise um motivo prático para isso.
+
+Pesquise o significado de anti-aliasing. Em que tipo de elemento da cena ele é mais perceptível?

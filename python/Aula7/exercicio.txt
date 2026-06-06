@@ -1,0 +1,34 @@
+
+Aula 7 - Exercício
+
+Vencimento: domingo, 17 mai. 2026, 23:59
+
+Geração Procedural e Animação em Circuito Fechado
+
+Objetivo
+	Desenvolver uma aplicação em OpenGL que gere um circuito de corrida tridimensional de forma procedural e represente um veículo 
+	se movimentando ao longo desse trajeto de maneira contínua e coerente.
+
+1. Geração procedural do circuito
+	O traçado da pista deve ser gerado de forma procedural a cada execução. Espera-se que o caminho forme um loop fechado, 
+	no qual o final da curva se conecta ao início, permitindo um percurso contínuo.
+	A construção do trajeto pode ser feita a partir da combinação de curvas paramétricas, como Bézier cúbicas, Hermite ou splines.
+
+2. Suavidade do trajeto
+	O circuito deve apresentar transições suaves entre os segmentos de curva. A ideia é evitar mudanças bruscas de direção, garantindo uma 
+	continuidade visual e geométrica ao longo de todo o percurso.
+	A forma de garantir essa suavidade - seja via posicionamento de pontos de controle, uso de tangentes ou escolha do tipo de 
+	curva - fica a cargo do aluno.
+
+3. Renderização
+	O circuito precisa ser representado visualmente no espaço 3D. Isso pode ser feito por meio de discretização da curva (por exemplo, 
+	instanciando pequenos trechos de pista ao longo do caminho) ou utilizando primitivas adequadas.
+
+4. Movimento do veículo
+	Um objeto simples deve percorrer o circuito continuamente ao longo do tempo, simulando um carro. Além da translação ao longo da curva, 
+	espera-se que o objeto se oriente de acordo com a direção do movimento, ajustando sua rotação com base no vetor tangente da curva em cada ponto.
+
+5. O que será avaliado
+	- Consistência do circuito gerado, especialmente na suavidade das transições
+	- Uso adequado da direção da curva para orientar o movimento
+	- Organização do código e uso das transformações no pipeline gráfico

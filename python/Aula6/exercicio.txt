@@ -1,0 +1,34 @@
+
+Aula 6 - Exercício
+Vencimento: domingo, 17 mai. 2026, 23:59
+
+Expansão do Modelo de Phong: Múltiplas Luzes e Dinâmica
+
+Objetivo
+
+Desenvolver uma aplicação em OpenGL que expanda a implementação base do modelo de iluminação de Phong para suportar 
+múltiplas fontes de luz dinâmicas, iterativas e com propriedades independentes.
+
+1. Múltiplas fontes e composição aditiva
+	O cálculo de iluminação no shader deve ser adaptado para receber e processar pelo menos três fontes de luz simultâneas. 
+	A cor final do fragmento será o resultado da soma das contribuições de todas as fontes ativas.
+
+	A sugestão é atribuir cores distintas para as luzes (como vermelho, verde e azul), 
+	permitindo observar a composição aditiva e a mistura de tons na superfície dos modelos tridimensionais.
+
+2. Animação espacial
+	As luzes não devem permanecer estáticas. 
+	Pelo menos uma das fontes precisa se movimentar continuamente pelo espaço da cena ao longo do tempo. 
+	A forma de criar esse movimento - seja uma órbita ao redor dos objetos usando funções trigonométricas ou outro tipo de 
+	trajetória percorrida de forma fluida - fica a cargo do aluno.
+
+3. Atenuação variável
+	As fontes de luz devem apresentar comportamentos físicos diferentes em relação à distância. 
+	A ideia é aplicar o cálculo de atenuação de forma que as luzes tenham áreas de influência distintas 
+	(por exemplo, configurando uma luz com atenuação rápida para ter alcance curto e outra com dissipação menor para 
+	iluminar a cena de forma mais ampla).
+
+4. Controle de estado interativo
+	A aplicação precisa oferecer controles de teclado para ligar e desligar cada uma das luzes de forma independente e em 
+	tempo real.	Você deve definir uma estratégia para projetar essa interrupção, atualizando o estado da luz e garantindo 
+	que o shader ignore fontes desligadas sem prejudicar a renderização da cena.
